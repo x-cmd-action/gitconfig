@@ -6,15 +6,17 @@
 
 set -euo errexit
 
-# Mode 1: copy a full .gitconfig file.
+# Mode 1: include a .gitconfig file via git's native [include] mechanism.
+# Adds 'include.path = <file>' to ~/.gitconfig — the existing global
+# config is preserved (merge, not wholesale replace). Git reads the
+# included file's values when looking up keys globally.
 if [ -n "$INPUT_CONFIG" ]; then
     if [ ! -f "$INPUT_CONFIG" ]; then
         echo "ERROR: config file not found: $INPUT_CONFIG" >&2
         exit 1
     fi
-    cp "$INPUT_CONFIG" "$HOME/.gitconfig"
-    chmod 600 "$HOME/.gitconfig"
-    echo "gitconfig: copied $INPUT_CONFIG -> ~/.gitconfig"
+    git config --global include.path "$INPUT_CONFIG"
+    echo "gitconfig: include.path=$INPUT_CONFIG (added to ~/.gitconfig)"
     exit 0
 fi
 

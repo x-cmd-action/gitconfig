@@ -35,7 +35,7 @@ steps:
 | --- | --- |
 | 三个都给 | 全局设置 name + email |
 | 只给 `name` + `email` | 全局设置 name + email |
-| 只给 `config` | 文件复制到 `~/.gitconfig`（覆盖 name/email）|
+| 只给 `config` | 给 `~/.gitconfig` 加 `include.path = <file>`（**保留**现有设置）|
 | 都不给 | no-op |
 
 ## 作用域

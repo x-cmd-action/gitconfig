@@ -35,7 +35,7 @@ Or copy a full `.gitconfig` from a path in your workflow:
 | --- | --- |
 | All three | name + email set globally |
 | Just `name` + `email` | name + email set globally |
-| Just `config` | file copied to `~/.gitconfig` (overrides name/email) |
+| Just `config` | `include.path = <file>` added to `~/.gitconfig` (preserves existing settings) |
 | Nothing | no-op |
 
 ## Scope
