@@ -6,6 +6,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: default — name + email set globally
         uses: x-cmd-action/gitconfig@v1
 
