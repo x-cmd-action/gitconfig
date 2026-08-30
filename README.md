@@ -23,13 +23,29 @@ steps:
       email: ci@example.com
 ```
 
-Or copy a full `.gitconfig` from a path in your workflow:
+Or include a full `.gitconfig` from a path in your workflow. Convention: name it `global.gitconfig` and check it into `.github/` so each workflow repo ships its own global git config:
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
   with:
-    config: .github/.gitconfig
+    config: .github/global.gitconfig
 ```
+
+`.github/global.gitconfig`:
+
+```ini
+[user]
+    name = ci-bot
+    email = ci@example.com
+
+[commit]
+    gpgsign = true
+
+[gpg "format:ssh"]
+    program = /path/to/ssh-keygen-wrapper
+```
+
+Anything git-format is supported — `[include]`, conditional includes (`[includeIf "gitdir:..."]`), aliases, signing config, etc. The file's contents are merged into `~/.gitconfig` via git's native `[include]` mechanism; your existing global settings are preserved.
 
 | Input set | Behavior |
 | --- | --- |

@@ -23,13 +23,29 @@ steps:
       email: ci@example.com
 ```
 
-或者从 workflow 里的某份 `.gitconfig` 文件整体导入：
+或者从 workflow 里的某份 `.gitconfig` 文件整体导入。约定：文件名用 `global.gitconfig`，放在 `.github/` 下，每个 workflow 仓库自带全局 git 配置：
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
   with:
-    config: .github/.gitconfig
+    config: .github/global.gitconfig
 ```
+
+`.github/global.gitconfig`：
+
+```ini
+[user]
+    name = ci-bot
+    email = ci@example.com
+
+[commit]
+    gpgsign = true
+
+[gpg "format:ssh"]
+    program = /path/to/ssh-keygen-wrapper
+```
+
+任何 git config 格式都支持 —— `[include]`、条件 include（`[includeIf "gitdir:..."]`）、alias、签名配置等。文件内容通过 git 原生的 `[include]` 机制合并进 `~/.gitconfig`，保留你原有的全局设置。
 
 | 给了哪些 input | 行为 |
 | --- | --- |
