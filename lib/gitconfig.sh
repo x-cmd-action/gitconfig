@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 # x-cmd-action/gitconfig — pure-shell implementation.
-# Two modes (mutually exclusive: config wins):
-#   1. config=<file>   — copy that file to ~/.gitconfig, skip name/email
-#   2. no config input  — set user.name and user.email globally
+# Global scope only: writes to ~/.gitconfig. Position-independent.
+#
+# Inputs (any subset may be combined):
+#   config=<file>    → add [include] path to ~/.gitconfig (merges with existing)
+#   hooks-path=<dir> → git config --global core.hooksPath <dir>
+#   name=<str>       → git config --global user.name <str>
+#   email=<str>      → git config --global user.email <str>
+#
+# Precedence:
+#   When config is set, name / email / hooks-path are skipped (the included
+#   file is authoritative for global scope).
+#
+# For repo-scoped config, use the `local-config` input on
+# `x-cmd-action/checkout` or `x-cmd-action/this-repo` instead — those
+# write to a specific repo's .git/config (which would implicitly depend
+# on cwd if it lived here).
 
 set -euo errexit
 
-# Mode 1: include a .gitconfig file via git's native [include] mechanism.
-# Adds 'include.path = <file>' to ~/.gitconfig — the existing global
-# config is preserved (merge, not wholesale replace). Git reads the
-# included file's values when looking up keys globally. This is also
-# where Git 2.54+ inline [hook "name"] stanzas go.
 if [ -n "$INPUT_CONFIG" ]; then
     if [ ! -f "$INPUT_CONFIG" ]; then
         echo "ERROR: config file not found: $INPUT_CONFIG" >&2
@@ -20,10 +28,6 @@ if [ -n "$INPUT_CONFIG" ]; then
     echo "gitconfig: include.path=$INPUT_CONFIG (added to ~/.gitconfig)"
     exit 0
 fi
-
-# Mode 2: set individual keys globally. Each is opt-in.
-# - user.name / user.email have safe CI defaults from action.yml.
-# - hooks-path sets core.hooksPath for pre-2.54 / script-based hooks.
 
 if [ -n "$INPUT_HOOKS_PATH" ]; then
     if [ ! -d "$INPUT_HOOKS_PATH" ]; then

@@ -102,11 +102,11 @@ action 同时支持两种。按 git 版本和团队偏好选一个。
 
 ## 作用域
 
-这个 action 写的是 **runner 的 `~/.gitconfig`** —— 对 job 里所有 git 命令、所有 repo 生效。如果只想给**某一个 checkout** 设 config，用 `x-cmd-action/checkout` 的 `gitconfig` input（用 `[include]` 把文件 scope 到那个 repo）。
+这个 action 写的是 **runner 的 `~/.gitconfig`** —— 对 job 里所有 git 命令、所有 repo 生效。如果只想给**某一个 checkout** 设 config，用 `x-cmd-action/checkout` 或 `x-cmd-action/this-repo` 的 `local-config` input（往**那个 repo 的** `.git/config` 写 `[include]`）。
 
 | 需求 | 用 |
 | --- | --- |
-| 只给一个特定 repo 设 config | `x-cmd-action/checkout` 的 `gitconfig` input |
+| 只给一个特定 repo 设 config | `x-cmd-action/checkout` / `x-cmd-action/this-repo` 的 `local-config` input |
 | 给整个 job 设 config（所有 repo、所有命令）| `x-cmd-action/gitconfig`（本 action） |
 
 ## 许可证
@@ -115,7 +115,8 @@ Apache 2.0 —— 见 [`LICENSE`](LICENSE)。
 
 ## 相关链接
 
-- [`x-cmd-action/checkout`](../checkout) —— 有个 `gitconfig` input 是 **repo-scoped**（用 `[include]`）。给单个 checkout 设 config 时用它。
+- [`x-cmd-action/checkout`](https://github.com/x-cmd-action/checkout) —— 有个 `local-config` input 是 **repo-scoped**（用 `[include]`）。给单个 checkout 设 config 时用它。
+- [`x-cmd-action/this-repo`](https://github.com/x-cmd-action/this-repo) —— 最简"只 checkout 当前 repo"版本，同样有 `local-config`。
 - [x-cmd/action](https://github.com/x-cmd/action) —— 这个逻辑原本内联在它里面。
 - [x-cmd-action/.github](https://github.com/x-cmd-action/.github) —— org 主页 + 路线图
 - [Git 2.54 release notes](https://www.dsebastien.net/git-2-54-config-based-hooks-replace-husky-and-pre-commit) —— config-based hooks stanzas

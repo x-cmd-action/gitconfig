@@ -104,11 +104,11 @@ The action supports both. Pick one based on your git version and team preference
 
 ## Scope
 
-This action writes to the **runner's `~/.gitconfig`** — applies to every git command in the job, every repo. If you want config that applies **only to a specific checkout**, use `x-cmd-action/checkout`'s `gitconfig` input instead (it uses `[include]` to scope the file to one repo).
+This action writes to the **runner's `~/.gitconfig`** — applies to every git command in the job, every repo. If you want config that applies **only to a specific checkout**, use `x-cmd-action/checkout` (or `x-cmd-action/this-repo`) with its `local-config` input instead — that writes `[include]` to **one repo's** `.git/config`.
 
 | Want | Use |
 | --- | --- |
-| Config for one specific repo | `x-cmd-action/checkout`'s `gitconfig` input |
+| Config for one specific repo | `x-cmd-action/checkout` / `x-cmd-action/this-repo`'s `local-config` input |
 | Config for the whole job (all repos, all commands) | `x-cmd-action/gitconfig` (this) |
 
 ## License
@@ -117,7 +117,8 @@ Apache 2.0 — see [`LICENSE`](LICENSE).
 
 ## Related
 
-- [`x-cmd-action/checkout`](../checkout) — has a `gitconfig` input that is **repo-scoped** (via `[include]`). Use when you want config for one checkout only.
+- [`x-cmd-action/checkout`](https://github.com/x-cmd-action/checkout) — has a `local-config` input that is **repo-scoped** (via `[include]`). Use when you want config for one checkout only.
+- [`x-cmd-action/this-repo`](https://github.com/x-cmd-action/this-repo) — minimal "current repo only" checkout, also has `local-config`.
 - [x-cmd/action](https://github.com/x-cmd/action) — the parent that historically had this logic inline.
 - [x-cmd-action/.github](https://github.com/x-cmd-action/.github) — org profile + roadmap.
 - [Git 2.54 release notes](https://www.dsebastien.net/git-2-54-config-based-hooks-replace-husky-and-pre-commit) — config-based hooks stanzas.

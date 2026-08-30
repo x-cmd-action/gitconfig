@@ -1,28 +1,35 @@
 name: gitconfig
 description: |
-  Pure-shell git config setup. Two modes:
-    1. Default — set user.name and user.email globally (with sensible defaults).
-    2. With 'config' input — copy a full .gitconfig file to ~/.gitconfig
-       (overrides mode 1 entirely).
-  No Node.js, no x-cmd needed.
+  Pure-shell git config setup — global scope only. No Node.js, no x-cmd needed.
+  Writes to ~/.gitconfig (the runner's global config). Position-independent:
+  does not depend on cwd or any specific repo.
+
+  For repo-scoped config (signing keys, custom identity, etc. for one
+  checkout only), use the `local-config` input on `x-cmd-action/checkout`
+  or `x-cmd-action/this-repo` instead — that input writes to a specific
+  repo's .git/config.
 
 inputs:
   name:
-    description: 'git user.name (applied with --global). Ignored when config is set.'
+    description: 'git user.name (applied with --global). Skipped when config is set.'
     required: false
     default: 'github-actions[bot]'
   email:
-    description: 'git user.email (applied with --global). Ignored when config is set.'
+    description: 'git user.email (applied with --global). Skipped when config is set.'
     required: false
     default: 'github-actions[bot]@users.noreply.github.com'
   hooks-path:
     description: |
       Path to a directory of git hook scripts (pre-commit, commit-msg, etc.).
       Sets core.hooksPath globally. Use this on Git < 2.54 or when you have
-      existing script-based hooks. Ignored when config is set.
+      existing script-based hooks. Skipped when config is set.
     required: false
   config:
-    description: 'Path to a .gitconfig file. When set, added as [include] in ~/.gitconfig and name/email/hooks-path are skipped. On Git 2.54+, inline [hook "name"] stanzas work here too.'
+    description: |
+      Path to a .gitconfig file. When set, added as [include] in ~/.gitconfig.
+      Existing global config is preserved (git's native include merge).
+      On Git 2.54+, inline [hook "name"] stanzas work here too.
+      When config is set, name / email / hooks-path are skipped.
     required: false
 
 runs:
