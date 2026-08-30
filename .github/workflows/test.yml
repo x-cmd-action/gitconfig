@@ -50,15 +50,15 @@ jobs:
           rm -rf "$HOME"
           mkdir -p "$HOME"
           echo "=== fresh HOME = $HOME ==="
-          # Composite actions unpack under /home/runner/work/_actions/<repo>/<ref>/
-          # The same path the action itself uses via ${{ github.action_path }}.
-          SCRIPT="/home/runner/work/_actions/x-cmd-action/gitconfig/main/lib/gitconfig.sh"
-          if [ ! -f "$SCRIPT" ]; then
-            echo "ERROR: gitconfig.sh not at expected runner path: $SCRIPT"
-            # Probe the real location for diagnostics
-            find /home/runner/work/_actions/x-cmd-action -name "gitconfig.sh" 2>/dev/null || true
+          # Composite actions unpack under /home/runner/work/_actions/<repo>/<ref>/.
+          # When invoked via a tag (e.g., v1) the ref segment is the tag name,
+          # not 'main'. Glob for the actual script.
+          SCRIPT=$(find /home/runner/work/_actions/x-cmd-action/gitconfig -name "gitconfig.sh" 2>/dev/null | head -1)
+          if [ -z "$SCRIPT" ] || [ ! -f "$SCRIPT" ]; then
+            echo "ERROR: cannot locate gitconfig.sh under /home/runner/work/_actions/x-cmd-action/gitconfig"
             exit 1
           fi
+          echo "=== script: $SCRIPT ==="
           bash "$SCRIPT"
           test "$(git config --global user.name)" = "file-bot" && echo "OK: file-based name applied on fresh HOME"
           test "$(git config --global user.email)" = "file@example.com" && echo "OK: file-based email applied on fresh HOME"
