@@ -6,30 +6,38 @@
 
 ## 做什么
 
-两种模式（互斥）：
+三个可选 input，各自独立可自由组合：
 
-1. **默认** —— 全局设置 `user.name` 和 `user.email`（默认是 `github-actions[bot]`，CI 常用身份）
-2. **`config=<file>`** —— 把 `<file>` 的内容**整体复制**到 `~/.gitconfig`（覆盖式）
+- **`name`** —— `git config --global user.name`
+- **`email`** —— `git config --global user.email`
+- **`config`** —— 给 `~/.gitconfig` 加 `[include] path = <file>`，保留现有设置（通过 git 原生 include 机制合并）
+
+其他配置（hooks、签名、alias 等）都通过 `config:` 指向一个 `.gitconfig` 文件，用 git 原生 config 语法表达。
 
 这个 step 跑完后，job 里所有 git 命令都看到这份 config（全局生效）。
 
 ## 用法
 
+### 1. 设 CI 身份
+
 ```yaml
-steps:
-  - uses: x-cmd-action/gitconfig@v1
+- uses: x-cmd-action/gitconfig@v1
     with:
       name: ci-bot
       email: ci@example.com
 ```
 
-或者从 workflow 里的某份 `.gitconfig` 文件整体导入。约定：文件名用 `global.gitconfig`，放在 `.github/` 下，每个 workflow 仓库自带全局 git 配置：
+省略 `name` / `email` 时，应用合理的 CI 默认（`github-actions[bot]`）。
+
+### 2. 整体 include 一份 .gitconfig 文件
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-  with:
-    config: .github/global.gitconfig
+    with:
+      config: .github/global.gitconfig
 ```
+
+约定：文件名用 `global.gitconfig`，放在 `.github/` 下，每个 workflow 仓库自带全局 git 配置。任何 git 格式的配置都支持 —— alias、签名、`[includeIf "gitdir:..."]`、（Git 2.54+）内联 hooks。
 
 `.github/global.gitconfig`：
 
@@ -43,16 +51,58 @@ steps:
 
 [gpg "format:ssh"]
     program = /path/to/ssh-keygen-wrapper
+
+[alias]
+    co = checkout
+
+; 内联 hooks —— Git 2.54+（2026/5）。替代 core.hooksPath + 脚本文件。
+[hook "pre-commit-lint"]
+    event = pre-commit
+    command = ./node_modules/.bin/eslint --fix-dry-run
+
+[hook "commit-msg-sign"]
+    event = commit-msg
+    command = ./scripts/sign-commit-msg.sh
 ```
 
-任何 git config 格式都支持 —— `[include]`、条件 include（`[includeIf "gitdir:..."]`）、alias、签名配置等。文件内容通过 git 原生的 `[include]` 机制合并进 `~/.gitconfig`，保留你原有的全局设置。
+设了 `config` 后，`name` / `email` 跳过（include 的文件是 authoritative）。
 
-| 给了哪些 input | 行为 |
-| --- | --- |
-| 三个都给 | 全局设置 name + email |
-| 只给 `name` + `email` | 全局设置 name + email |
-| 只给 `config` | 给 `~/.gitconfig` 加 `include.path = <file>`（**保留**现有设置）|
-| 都不给 | no-op |
+### 3. 组合
+
+```yaml
+- uses: x-cmd-action/gitconfig@v1
+    with:
+      name: ci-bot
+      email: ci@example.com
+      config: .github/global.gitconfig
+```
+
+## Git 2.54+ 提示：内联 hooks via `[hook "name"]` stanzas
+
+2.54 之前（旧方式）：
+
+```bash
+# 提交一个目录的可执行脚本，让 git 指向它
+git config --global core.hooksPath .github/hooks
+# .github/hooks/pre-commit、.github/hooks/commit-msg 等
+```
+
+2.54+（2026/5 新方式）：
+
+```ini
+# 在任何 git config 文件里直接定义 hooks —— 不用脚本文件。
+[hook "pre-commit-lint"]
+    event = pre-commit
+    command = ./node_modules/.bin/eslint --fix-dry-run
+
+[hook "commit-msg-sign"]
+    event = commit-msg
+    command = ./scripts/sign-commit-msg.sh
+```
+
+内联 hooks 写在 `~/.gitconfig`（或任何 included 文件）里。支持同一 event 多个 hooks。为向后兼容，旧 `.git/hooks/` 脚本仍然最后跑。
+
+`x-cmd-action/gitconfig` 不需要单独的 hooks input —— 全部走 `config:` 文件。
 
 ## 作用域
 
@@ -79,14 +129,13 @@ runs:
 ```
 
 ```bash
-# lib/gitconfig.sh
+# lib/gitconfig.sh（简化）
 if [ -n "$INPUT_CONFIG" ]; then
-    cp "$INPUT_CONFIG" "$HOME/.gitconfig"
-    chmod 600 "$HOME/.gitconfig"
+    git config --global include.path "$INPUT_CONFIG"
     exit 0
 fi
-git config --global user.name "$INPUT_NAME"
-git config --global user.email "$INPUT_EMAIL"
+[ -n "$INPUT_NAME"  ] && git config --global user.name  "$INPUT_NAME"
+[ -n "$INPUT_EMAIL" ] && git config --global user.email "$INPUT_EMAIL"
 ```
 
 ## 许可证
@@ -98,3 +147,4 @@ Apache 2.0 —— 见 [`LICENSE`](LICENSE)。
 - [`x-cmd-action/checkout`](../checkout) —— 有个 `gitconfig` input 是 **repo-scoped**（用 `[include]`）。给单个 checkout 设 config 时用它。
 - [x-cmd/action](https://github.com/x-cmd/action) —— 这个逻辑原本内联在它里面。
 - [x-cmd-action/.github](https://github.com/x-cmd-action/.github) —— org 主页 + 路线图
+- [Git 2.54 release notes](https://www.dsebastien.net/git-2-54-config-based-hooks-replace-husky-and-pre-commit) —— config-based hooks stanzas
