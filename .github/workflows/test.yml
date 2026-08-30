@@ -1,0 +1,39 @@
+name: test-gitconfig
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: default — name + email set globally
+        uses: x-cmd-action/gitconfig@v1
+
+      - name: verify global config
+        shell: bash
+        run: |
+          test "$(git config --global user.name)" = "github-actions[bot]" && echo "OK: default name set"
+          test "$(git config --global user.email)" = "github-actions[bot]@users.noreply.github.com" && echo "OK: default email set"
+
+      - name: custom name/email overrides defaults
+        uses: x-cmd-action/gitconfig@v1
+        with:
+          name: custom-bot
+          email: custom@example.com
+
+      - name: verify custom values
+        shell: bash
+        run: |
+          test "$(git config --global user.name)" = "custom-bot" && echo "OK: custom name applied"
+          test "$(git config --global user.email)" = "custom@example.com" && echo "OK: custom email applied"
+
+      - name: config file replaces entire ~/.gitconfig
+        uses: x-cmd-action/gitconfig@v1
+        with:
+          config: ${{ github.workspace }}/.github/workflows/test.gitconfig
+
+      - name: verify config file applied
+        shell: bash
+        run: |
+          test "$(git config --global user.name)" = "file-bot" && echo "OK: file-based name applied"
+          test "$(git config --global user.email)" = "file@example.com" && echo "OK: file-based email applied"

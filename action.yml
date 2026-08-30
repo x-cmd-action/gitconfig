@@ -1,0 +1,31 @@
+name: gitconfig
+description: |
+  Pure-shell git config setup. Two modes:
+    1. Default — set user.name and user.email globally (with sensible defaults).
+    2. With 'config' input — copy a full .gitconfig file to ~/.gitconfig
+       (overrides mode 1 entirely).
+  No Node.js, no x-cmd needed.
+
+inputs:
+  name:
+    description: 'git user.name (applied with --global). Ignored when config is set.'
+    required: false
+    default: 'github-actions[bot]'
+  email:
+    description: 'git user.email (applied with --global). Ignored when config is set.'
+    required: false
+    default: 'github-actions[bot]@users.noreply.github.com'
+  config:
+    description: 'Path to a .gitconfig file. When set, copied to ~/.gitconfig and name/email are skipped.'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: apply git config
+      shell: bash
+      env:
+        INPUT_NAME: ${{ inputs.name }}
+        INPUT_EMAIL: ${{ inputs.email }}
+        INPUT_CONFIG: ${{ inputs.config }}
+      run: bash ${{ github.action_path }}/lib/gitconfig.sh
