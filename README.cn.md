@@ -113,6 +113,29 @@ action 同时支持两种。按 git 版本和团队偏好选一个。
 
 Apache 2.0 —— 见 [`LICENSE`](LICENSE)。
 
+## FAQ
+
+### 为什么这个 action 没有 `local-config` input？
+
+`local-config` 写到**某个 repo 的** `.git/config` —— 这意味着它隐式依赖 cwd（具体哪个 repo）。这种耦合应该归到**知道自己在 checkout 哪个 repo 的** action（`x-cmd-action/checkout`、`x-cmd-action/this-repo`），而不是归到写 `~/.gitconfig` 的全局 config action（后者应该是位置无关的）。
+
+具体说：本 action 只写 `~/.gitconfig`。它应该不管 `$GITHUB_WORKSPACE` 下有没有 repo、是什么 repo 都表现一致。如果在这里加 `local-config`，调用方就得：
+
+- 在 `$GITHUB_WORKSPACE` 下有个 git repo（否则 action fail）
+- 知道 include 要指向哪个 repo
+
+这两件事 checkout action 本来就躲不掉 —— 所以 `local-config` 放那。
+
+如果要给某个 checkout 加 repo-scoped config：
+
+```yaml
+- uses: x-cmd-action/checkout@v1   # 或 x-cmd-action/this-repo@v1
+  with:
+    local-config: .github/repo.gitconfig
+```
+
+include 的文件值叠在 `~/.gitconfig` 之上（git `--local > --global` 优先级），所以可以在文件里写 `[user] name = ...` 给该 repo 单独换 identity。
+
 ## 相关链接
 
 - [`x-cmd-action/checkout`](https://github.com/x-cmd-action/checkout) —— 有个 `local-config` input 是 **repo-scoped**（用 `[include]`）。给单个 checkout 设 config 时用它。

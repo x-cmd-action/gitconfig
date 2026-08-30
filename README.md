@@ -115,6 +115,29 @@ This action writes to the **runner's `~/.gitconfig`** — applies to every git c
 
 Apache 2.0 — see [`LICENSE`](LICENSE).
 
+## FAQ
+
+### Why is there no `local-config` input on this action?
+
+`local-config` writes to a specific repo's `.git/config` — which means it implicitly depends on cwd (a specific repo). That coupling belongs on the action that *knows* which repo it's checking out (`x-cmd-action/checkout`, `x-cmd-action/this-repo`), not on a global config action that should be position-independent.
+
+Concretely: this action only writes to `~/.gitconfig`. It should work the same regardless of what repo, if any, happens to be in `$GITHUB_WORKSPACE`. Adding a `local-config` input here would force callers to:
+
+- have a git repo at `$GITHUB_WORKSPACE` (otherwise the action fails)
+- know which repo to point the include at
+
+Both are decisions a checkout action has to make anyway — so `local-config` lives there.
+
+If you want repo-scoped config for a specific checkout:
+
+```yaml
+- uses: x-cmd-action/checkout@v1   # or x-cmd-action/this-repo@v1
+  with:
+    local-config: .github/repo.gitconfig
+```
+
+The included file's values overlay on top of `~/.gitconfig` (git's `--local > --global` precedence), so you can set `[user] name = ...` inside the file to get a different identity for that repo only.
+
 ## Related
 
 - [`x-cmd-action/checkout`](https://github.com/x-cmd-action/checkout) — has a `local-config` input that is **repo-scoped** (via `[include]`). Use when you want config for one checkout only.
