@@ -20,8 +20,19 @@ if [ -n "$INPUT_CONFIG" ]; then
     exit 0
 fi
 
-# Mode 2: set name/email globally. Both inputs default to safe values
-# from action.yml, so we always set them unless explicitly cleared.
+# Mode 2: set individual keys globally. Each is opt-in.
+# - core.hooksPath is the primary CI use case (custom hooks dir).
+# - user.name / user.email have safe CI defaults from action.yml.
+
+if [ -n "$INPUT_HOOKS_PATH" ]; then
+    if [ ! -d "$INPUT_HOOKS_PATH" ]; then
+        echo "ERROR: hooks-path not a directory: $INPUT_HOOKS_PATH" >&2
+        exit 1
+    fi
+    git config --global core.hooksPath "$INPUT_HOOKS_PATH"
+    echo "gitconfig: core.hooksPath=$INPUT_HOOKS_PATH"
+fi
+
 if [ -n "$INPUT_NAME" ]; then
     git config --global user.name "$INPUT_NAME"
     echo "gitconfig: user.name=$INPUT_NAME"

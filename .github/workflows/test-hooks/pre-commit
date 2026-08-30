@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test hook — never actually runs in CI, just needs to exist for the
+# core.hooksPath directory to be valid.
+echo "test hook"
+exit 0

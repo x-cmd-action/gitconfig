@@ -39,3 +39,13 @@ jobs:
         run: |
           test "$(git config --global user.name)" = "file-bot" && echo "OK: file-based name applied"
           test "$(git config --global user.email)" = "file@example.com" && echo "OK: file-based email applied"
+
+      - name: hooks-path sets core.hooksPath globally
+        uses: x-cmd-action/gitconfig@v1
+        with:
+          hooks-path: ${{ github.workspace }}/.github/workflows/test-hooks
+
+      - name: verify hooks-path applied
+        shell: bash
+        run: |
+          test "$(git config --global core.hooksPath)" = "${{ github.workspace }}/.github/workflows/test-hooks" && echo "OK: core.hooksPath applied globally"

@@ -15,8 +15,11 @@ inputs:
     description: 'git user.email (applied with --global). Ignored when config is set.'
     required: false
     default: 'github-actions[bot]@users.noreply.github.com'
+  hooks-path:
+    description: 'Path to a directory of git hooks. Sets core.hooksPath globally so every git invocation in the job uses your hooks (pre-commit, commit-msg, etc.). Ignored when config is set.'
+    required: false
   config:
-    description: 'Path to a .gitconfig file. When set, copied to ~/.gitconfig and name/email are skipped.'
+    description: 'Path to a .gitconfig file. When set, added as [include] in ~/.gitconfig and name/email/hooks-path are skipped.'
     required: false
 
 runs:
@@ -27,5 +30,6 @@ runs:
       env:
         INPUT_NAME: ${{ inputs.name }}
         INPUT_EMAIL: ${{ inputs.email }}
+        INPUT_HOOKS_PATH: ${{ inputs.hooks-path }}
         INPUT_CONFIG: ${{ inputs.config }}
       run: bash ${{ github.action_path }}/lib/gitconfig.sh
