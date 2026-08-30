@@ -9,7 +9,8 @@ set -euo errexit
 # Mode 1: include a .gitconfig file via git's native [include] mechanism.
 # Adds 'include.path = <file>' to ~/.gitconfig — the existing global
 # config is preserved (merge, not wholesale replace). Git reads the
-# included file's values when looking up keys globally.
+# included file's values when looking up keys globally. This is also
+# where Git 2.54+ inline [hook "name"] stanzas go.
 if [ -n "$INPUT_CONFIG" ]; then
     if [ ! -f "$INPUT_CONFIG" ]; then
         echo "ERROR: config file not found: $INPUT_CONFIG" >&2
@@ -21,8 +22,8 @@ if [ -n "$INPUT_CONFIG" ]; then
 fi
 
 # Mode 2: set individual keys globally. Each is opt-in.
-# - core.hooksPath is the primary CI use case (custom hooks dir).
 # - user.name / user.email have safe CI defaults from action.yml.
+# - hooks-path sets core.hooksPath for pre-2.54 / script-based hooks.
 
 if [ -n "$INPUT_HOOKS_PATH" ]; then
     if [ ! -d "$INPUT_HOOKS_PATH" ]; then

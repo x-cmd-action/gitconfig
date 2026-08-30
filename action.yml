@@ -16,10 +16,13 @@ inputs:
     required: false
     default: 'github-actions[bot]@users.noreply.github.com'
   hooks-path:
-    description: 'Path to a directory of git hooks. Sets core.hooksPath globally so every git invocation in the job uses your hooks (pre-commit, commit-msg, etc.). Ignored when config is set.'
+    description: |
+      Path to a directory of git hook scripts (pre-commit, commit-msg, etc.).
+      Sets core.hooksPath globally. Use this on Git < 2.54 or when you have
+      existing script-based hooks. Ignored when config is set.
     required: false
   config:
-    description: 'Path to a .gitconfig file. When set, added as [include] in ~/.gitconfig and name/email/hooks-path are skipped.'
+    description: 'Path to a .gitconfig file. When set, added as [include] in ~/.gitconfig and name/email/hooks-path are skipped. On Git 2.54+, inline [hook "name"] stanzas work here too.'
     required: false
 
 runs:

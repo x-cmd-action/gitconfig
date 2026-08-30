@@ -6,15 +6,14 @@
 
 ## 做什么
 
-三个可选 input，各自独立可自由组合：
+四个可选 input，各自独立可自由组合：
 
 - **`name`** —— `git config --global user.name`
 - **`email`** —— `git config --global user.email`
-- **`config`** —— 给 `~/.gitconfig` 加 `[include] path = <file>`，保留现有设置（通过 git 原生 include 机制合并）
+- **`hooks-path`** —— `git config --global core.hooksPath <dir>`。兼容选项，用于 2.54 之前的 Git 或基于脚本的 hooks。
+- **`config`** —— 给 `~/.gitconfig` 加 `[include] path = <file>`，保留现有设置（git 原生 include 机制合并）。2.54+ 时的 `[hook "name"]` stanzas、alias、签名等用这个。
 
-其他配置（hooks、签名、alias 等）都通过 `config:` 指向一个 `.gitconfig` 文件，用 git 原生 config 语法表达。
-
-这个 step 跑完后，job 里所有 git 命令都看到这份 config（全局生效）。
+这个 step 跑完后，job 里所有 git 命令都看到这份 config（全局生效）。设了 `config` 后，`name` / `email` / `hooks-path` 都跳过（include 的文件是 authoritative）。
 
 ## 用法
 
@@ -29,15 +28,30 @@
 
 省略 `name` / `email` 时，应用合理的 CI 默认（`github-actions[bot]`）。
 
-### 2. 整体 include 一份 .gitconfig 文件
+### 2. 通过脚本目录设 hooks（任何 Git 版本）
+
+```yaml
+- uses: x-cmd-action/gitconfig@v1
+    with:
+      hooks-path: .github/hooks
+```
+
+`core.hooksPath` 全局设好，job 里后续任何 `git` 命令都用 `.github/hooks/` 里的 hooks。2.54 之前的 Git 或已有的可执行脚本（legacy husky 等）用这种。
+
+`.github/hooks/pre-commit`：
+
+```bash
+#!/usr/bin/env bash
+./node_modules/.bin/eslint --fix-dry-run
+```
+
+### 3. 通过内联 `[hook "name"]` stanzas 设 hooks（Git 2.54+）
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
     with:
       config: .github/global.gitconfig
 ```
-
-约定：文件名用 `global.gitconfig`，放在 `.github/` 下，每个 workflow 仓库自带全局 git 配置。任何 git 格式的配置都支持 —— alias、签名、`[includeIf "gitdir:..."]`、（Git 2.54+）内联 hooks。
 
 `.github/global.gitconfig`：
 
@@ -55,7 +69,7 @@
 [alias]
     co = checkout
 
-; 内联 hooks —— Git 2.54+（2026/5）。替代 core.hooksPath + 脚本文件。
+; Git 2.54+（2026/5）—— 内联定义 hooks，不用脚本文件
 [hook "pre-commit-lint"]
     event = pre-commit
     command = ./node_modules/.bin/eslint --fix-dry-run
@@ -65,9 +79,9 @@
     command = ./scripts/sign-commit-msg.sh
 ```
 
-设了 `config` 后，`name` / `email` 跳过（include 的文件是 authoritative）。
+设了 `config` 后，`name` / `email` / `hooks-path` 跳过。
 
-### 3. 组合
+### 4. 组合
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
@@ -77,32 +91,14 @@
       config: .github/global.gitconfig
 ```
 
-## Git 2.54+ 提示：内联 hooks via `[hook "name"]` stanzas
+## Hooks：两种方式选一
 
-2.54 之前（旧方式）：
+| 机制 | 适用场景 | Git 版本 |
+| --- | --- | --- |
+| `hooks-path: <dir>`（这个 action 的 input）| 已有基于脚本的 hooks、husky 风格、任何旧版 | 任意 |
+| `config:` 文件里的 `[hook "name"]` stanzas | 新搭建、想跟代码一起 version control、偏好声明式 | Git 2.54+（2026/5）|
 
-```bash
-# 提交一个目录的可执行脚本，让 git 指向它
-git config --global core.hooksPath .github/hooks
-# .github/hooks/pre-commit、.github/hooks/commit-msg 等
-```
-
-2.54+（2026/5 新方式）：
-
-```ini
-# 在任何 git config 文件里直接定义 hooks —— 不用脚本文件。
-[hook "pre-commit-lint"]
-    event = pre-commit
-    command = ./node_modules/.bin/eslint --fix-dry-run
-
-[hook "commit-msg-sign"]
-    event = commit-msg
-    command = ./scripts/sign-commit-msg.sh
-```
-
-内联 hooks 写在 `~/.gitconfig`（或任何 included 文件）里。支持同一 event 多个 hooks。为向后兼容，旧 `.git/hooks/` 脚本仍然最后跑。
-
-`x-cmd-action/gitconfig` 不需要单独的 hooks input —— 全部走 `config:` 文件。
+action 同时支持两种。按 git 版本和团队偏好选一个。
 
 ## 作用域
 

@@ -6,15 +6,14 @@
 
 ## What it does
 
-Three optional inputs that compose freely:
+Four optional inputs that compose freely:
 
 - **`name`** — `git config --global user.name`
 - **`email`** — `git config --global user.email`
-- **`config`** — adds an `[include] path = <file>` to `~/.gitconfig`. Existing settings are preserved (merge via git's native include mechanism).
+- **`hooks-path`** — `git config --global core.hooksPath <dir>`. Compatibility option for pre-2.54 Git or script-based hooks.
+- **`config`** — adds an `[include] path = <file>` to `~/.gitconfig`. Existing settings are preserved (merge via git's native include mechanism). Use this for `[hook "name"]` stanzas on Git 2.54+, aliases, signing, etc.
 
-Anything else (hooks, signing, aliases, etc.) goes through `config:` — point it at a `.gitconfig` file that uses Git's native config syntax.
-
-After this step runs, subsequent git commands in the job see the applied config globally.
+After this step runs, subsequent git commands in the job see the applied config globally. When `config` is set, `name` / `email` / `hooks-path` are skipped (the file is authoritative).
 
 ## Usage
 
@@ -29,15 +28,30 @@ After this step runs, subsequent git commands in the job see the applied config 
 
 If `name` / `email` are omitted, sensible CI defaults (`github-actions[bot]`) are applied.
 
-### 2. Include a full .gitconfig file
+### 2. Hooks via script directory (any Git version)
+
+```yaml
+- uses: x-cmd-action/gitconfig@v1
+    with:
+      hooks-path: .github/hooks
+```
+
+`core.hooksPath` is set globally, so any subsequent `git` command in the job runs the hooks in `.github/hooks/`. Use this on pre-2.54 Git or when you have existing executable scripts (e.g., legacy husky setup).
+
+`.github/hooks/pre-commit`:
+
+```bash
+#!/usr/bin/env bash
+./node_modules/.bin/eslint --fix-dry-run
+```
+
+### 3. Hooks via inline `[hook "name"]` stanzas (Git 2.54+)
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
     with:
       config: .github/global.gitconfig
 ```
-
-Convention: name the file `global.gitconfig` and check it into `.github/` so each workflow repo ships its own global git config. Anything git-format is supported — aliases, signing, `[includeIf "gitdir:..."]`, and (on Git 2.54+) inline hooks.
 
 `.github/global.gitconfig`:
 
@@ -55,7 +69,7 @@ Convention: name the file `global.gitconfig` and check it into `.github/` so eac
 [alias]
     co = checkout
 
-; Inline hooks — Git 2.54+ (May 2026). Replaces core.hooksPath + script files.
+; Git 2.54+ (May 2026) — define hooks inline, no script files needed
 [hook "pre-commit-lint"]
     event = pre-commit
     command = ./node_modules/.bin/eslint --fix-dry-run
@@ -65,9 +79,9 @@ Convention: name the file `global.gitconfig` and check it into `.github/` so eac
     command = ./scripts/sign-commit-msg.sh
 ```
 
-When `config` is set, `name` / `email` are skipped (the included file is authoritative).
+When `config` is set, `name` / `email` / `hooks-path` are skipped.
 
-### 3. Combine
+### 4. Combine
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
@@ -77,32 +91,16 @@ When `config` is set, `name` / `email` are skipped (the included file is authori
       config: .github/global.gitconfig
 ```
 
-## Git 2.54+ note: inline hooks via `[hook "name"]` stanzas
+## Hooks: choose your style
 
-Pre-2.54 (the old way):
+Two equivalent mechanisms for "give me custom git hooks in CI":
 
-```bash
-# Ship a directory of executable scripts; point git at it
-git config --global core.hooksPath .github/hooks
-# .github/hooks/pre-commit, .github/hooks/commit-msg, etc.
-```
+| Mechanism | Best when | Git version |
+| --- | --- | --- |
+| `hooks-path: <dir>` (this action's input) | existing script-based hooks, husky-style, anything older | Any |
+| `[hook "name"]` stanzas in `config:` file | new setup, want version-controlled hooks next to the code, prefer declarative | Git 2.54+ (May 2026) |
 
-2.54+ (the new way, May 2026):
-
-```ini
-# Define hooks inline in any git config file — no script files needed.
-[hook "pre-commit-lint"]
-    event = pre-commit
-    command = ./node_modules/.bin/eslint --fix-dry-run
-
-[hook "commit-msg-sign"]
-    event = commit-msg
-    command = ./scripts/sign-commit-msg.sh
-```
-
-Inline hooks live in `~/.gitconfig` (or any included file). Multiple hooks per event supported. Legacy `.git/hooks/` scripts still run last for backward compatibility.
-
-`x-cmd-action/gitconfig` doesn't need a separate input for hooks — just put them in the `config:` file.
+The action supports both. Pick one based on your git version and team preference.
 
 ## Scope
 
