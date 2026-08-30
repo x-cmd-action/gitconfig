@@ -109,31 +109,6 @@ action 同时支持两种。按 git 版本和团队偏好选一个。
 | 只给一个特定 repo 设 config | `x-cmd-action/checkout` 的 `gitconfig` input |
 | 给整个 job 设 config（所有 repo、所有命令）| `x-cmd-action/gitconfig`（本 action） |
 
-## 接线方式
-
-```yaml
-# action.yml（节选）
-runs:
-  using: composite
-  steps:
-    - shell: bash
-      env:
-        INPUT_NAME: ${{ inputs.name }}
-        INPUT_EMAIL: ${{ inputs.email }}
-        INPUT_CONFIG: ${{ inputs.config }}
-      run: bash ${{ github.action_path }}/lib/gitconfig.sh
-```
-
-```bash
-# lib/gitconfig.sh（简化）
-if [ -n "$INPUT_CONFIG" ]; then
-    git config --global include.path "$INPUT_CONFIG"
-    exit 0
-fi
-[ -n "$INPUT_NAME"  ] && git config --global user.name  "$INPUT_NAME"
-[ -n "$INPUT_EMAIL" ] && git config --global user.email "$INPUT_EMAIL"
-```
-
 ## 许可证
 
 Apache 2.0 —— 见 [`LICENSE`](LICENSE)。

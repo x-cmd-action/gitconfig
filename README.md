@@ -111,31 +111,6 @@ This action writes to the **runner's `~/.gitconfig`** — applies to every git c
 | Config for one specific repo | `x-cmd-action/checkout`'s `gitconfig` input |
 | Config for the whole job (all repos, all commands) | `x-cmd-action/gitconfig` (this) |
 
-## How it's wired
-
-```yaml
-# action.yml (excerpt)
-runs:
-  using: composite
-  steps:
-    - shell: bash
-      env:
-        INPUT_NAME: ${{ inputs.name }}
-        INPUT_EMAIL: ${{ inputs.email }}
-        INPUT_CONFIG: ${{ inputs.config }}
-      run: bash ${{ github.action_path }}/lib/gitconfig.sh
-```
-
-```bash
-# lib/gitconfig.sh (simplified)
-if [ -n "$INPUT_CONFIG" ]; then
-    git config --global include.path "$INPUT_CONFIG"
-    exit 0
-fi
-[ -n "$INPUT_NAME"  ] && git config --global user.name  "$INPUT_NAME"
-[ -n "$INPUT_EMAIL" ] && git config --global user.email "$INPUT_EMAIL"
-```
-
 ## License
 
 Apache 2.0 — see [`LICENSE`](LICENSE).
