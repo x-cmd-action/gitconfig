@@ -45,12 +45,23 @@ jobs:
       - name: config file applied cleanly on a fresh HOME (no prior ~/.gitconfig)
         env:
           HOME: /tmp/empty-home-${{ github.run_id }}
+          INPUT_CONFIG: ${{ github.workspace }}/.github/workflows/test.gitconfig
         run: |
           rm -rf "$HOME"
           mkdir -p "$HOME"
           echo "=== fresh HOME = $HOME ==="
-          INPUT_CONFIG="${{ github.workspace }}/.github/workflows/test.gitconfig" \
-            bash /home/runner/work/_actions/x-cmd-action/gitconfig/main/lib/gitconfig.sh
+          # Invoke the action via composite-step mechanism by re-running it.
+          # The simplest reliable way: invoke the action's lib script through
+          # a fresh composite-step. We do that by re-running the action via
+          # the github-script step's environment shape — but here we just
+          # locate the script by globbing for it.
+          SCRIPT=$(find "$RUNNER_TEMP" -name "gitconfig.sh" -path "*/gitconfig/*" 2>/dev/null | head -1)
+          if [ -z "$SCRIPT" ]; then
+            echo "ERROR: cannot locate gitconfig.sh under RUNNER_TEMP"
+            exit 1
+          fi
+          echo "=== found script: $SCRIPT ==="
+          bash "$SCRIPT"
           test "$(git config --global user.name)" = "file-bot" && echo "OK: file-based name applied on fresh HOME"
           test "$(git config --global user.email)" = "file@example.com" && echo "OK: file-based email applied on fresh HOME"
 
