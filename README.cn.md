@@ -21,9 +21,9 @@
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      name: ci-bot
-      email: ci@example.com
+  with:
+    name: ci-bot
+    email: ci@example.com
 ```
 
 省略 `name` / `email` 时，应用合理的 CI 默认（`github-actions[bot]`）。
@@ -32,8 +32,8 @@
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      hooks-path: .github/hooks
+  with:
+    hooks-path: .github/hooks
 ```
 
 `core.hooksPath` 全局设好，job 里后续任何 `git` 命令都用 `.github/hooks/` 里的 hooks。2.54 之前的 Git 或已有的可执行脚本（legacy husky 等）用这种。
@@ -49,8 +49,8 @@
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      config: .github/global.gitconfig
+  with:
+    config: .github/global.gitconfig
 ```
 
 `.github/global.gitconfig`：
@@ -85,10 +85,10 @@
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      name: ci-bot
-      email: ci@example.com
-      config: .github/global.gitconfig
+  with:
+    name: ci-bot
+    email: ci@example.com
+    config: .github/global.gitconfig
 ```
 
 ## Hooks：两种方式选一

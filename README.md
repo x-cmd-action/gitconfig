@@ -21,9 +21,9 @@ After this step runs, subsequent git commands in the job see the applied config 
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      name: ci-bot
-      email: ci@example.com
+  with:
+    name: ci-bot
+    email: ci@example.com
 ```
 
 If `name` / `email` are omitted, sensible CI defaults (`github-actions[bot]`) are applied.
@@ -32,8 +32,8 @@ If `name` / `email` are omitted, sensible CI defaults (`github-actions[bot]`) ar
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      hooks-path: .github/hooks
+  with:
+    hooks-path: .github/hooks
 ```
 
 `core.hooksPath` is set globally, so any subsequent `git` command in the job runs the hooks in `.github/hooks/`. Use this on pre-2.54 Git or when you have existing executable scripts (e.g., legacy husky setup).
@@ -49,8 +49,8 @@ If `name` / `email` are omitted, sensible CI defaults (`github-actions[bot]`) ar
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      config: .github/global.gitconfig
+  with:
+    config: .github/global.gitconfig
 ```
 
 `.github/global.gitconfig`:
@@ -85,10 +85,10 @@ When `config` is set, `name` / `email` / `hooks-path` are skipped.
 
 ```yaml
 - uses: x-cmd-action/gitconfig@v1
-    with:
-      name: ci-bot
-      email: ci@example.com
-      config: .github/global.gitconfig
+  with:
+    name: ci-bot
+    email: ci@example.com
+    config: .github/global.gitconfig
 ```
 
 ## Hooks: choose your style
