@@ -29,16 +29,30 @@ jobs:
           test "$(git config --global user.name)" = "custom-bot" && echo "OK: custom name applied"
           test "$(git config --global user.email)" = "custom@example.com" && echo "OK: custom email applied"
 
-      - name: config file replaces entire ~/.gitconfig
+      - name: config file is included via include.path (does not override earlier keys)
         uses: x-cmd-action/gitconfig@v1
         with:
           config: ${{ github.workspace }}/.github/workflows/test.gitconfig
 
-      - name: verify config file applied
+      - name: verify earlier name/email still wins (include appends, not replaces)
         shell: bash
         run: |
-          test "$(git config --global user.name)" = "file-bot" && echo "OK: file-based name applied"
-          test "$(git config --global user.email)" = "file@example.com" && echo "OK: file-based email applied"
+          # Earlier custom-bot/custom@example.com still wins — include.path adds
+          # the file as a source but does not override keys already set in ~/.gitconfig.
+          test "$(git config --global user.name)" = "custom-bot" && echo "OK: earlier custom name still in effect"
+          test "$(git config --global user.email)" = "custom@example.com" && echo "OK: earlier custom email still in effect"
+
+      - name: config file applied cleanly on a fresh HOME (no prior ~/.gitconfig)
+        env:
+          HOME: /tmp/empty-home-${{ github.run_id }}
+        run: |
+          rm -rf "$HOME"
+          mkdir -p "$HOME"
+          echo "=== fresh HOME = $HOME ==="
+          INPUT_CONFIG="${{ github.workspace }}/.github/workflows/test.gitconfig" \
+            bash /home/runner/work/_actions/x-cmd-action/gitconfig/main/lib/gitconfig.sh
+          test "$(git config --global user.name)" = "file-bot" && echo "OK: file-based name applied on fresh HOME"
+          test "$(git config --global user.email)" = "file@example.com" && echo "OK: file-based email applied on fresh HOME"
 
       - name: hooks-path sets core.hooksPath globally
         uses: x-cmd-action/gitconfig@v1
