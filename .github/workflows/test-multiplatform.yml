@@ -1,0 +1,244 @@
+name: test-multiplatform
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Daily at 06:00 UTC — cheap catch for regressions before users hit them.
+    - cron: "0 6 * * *"
+
+# Default permissions: read-only. The auto-issue step bumps to write.
+permissions:
+  contents: read
+
+jobs:
+  test-ubuntu:
+    name: "ubuntu-latest"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bench start (cold)
+        run: date +%s%N > /tmp/bench_start
+
+      - name: gitconfig with name+email (cold)
+        id: gc_step
+        uses: x-cmd-action/gitconfig@v1
+        with:
+          name: ci-bot
+          email: ci@example.com
+
+      - name: bench end (cold)
+        run: date +%s%N > /tmp/bench_end
+
+      - name: verify + report
+        shell: bash
+        run: |
+          test "$(git config --global user.name)" = "ci-bot" \
+              || { echo "FAIL: user.name not set"; exit 1; }
+          test "$(git config --global user.email)" = "ci@example.com" \
+              || { echo "FAIL: user.email not set"; exit 1; }
+
+          S=$(cat /tmp/bench_start)
+          E=$(cat /tmp/bench_end)
+          COLD_MS=$(( (E - S) / 1000000 ))
+          BASH_VERSION_STR=$(bash --version | head -1)
+
+          {
+            echo "## ubuntu-latest"
+            echo ""
+            echo "| metric | value |"
+            echo "|---|---|"
+            echo "| result | PASS |"
+            echo "| step wall-clock (cold) | ${COLD_MS} ms |"
+            echo "| bash version | ${BASH_VERSION_STR} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "RESULT=PASS BASH=$BASH_VERSION_STR STEP_MS=$COLD_MS" >> "$GITHUB_OUTPUT"
+
+  test-windows:
+    name: "windows-latest"
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Windows runners default to pwsh. For bash-only constructs we have
+      # to be explicit. The action itself runs `bash lib/this-repo.sh`,
+      # which finds bash on PATH on windows-latest runners (Git Bash).
+      - name: show bash availability
+        shell: bash
+        run: |
+          echo "bash on PATH: $(command -v bash)"
+          bash --version
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "HOME=$HOME"
+
+      - name: bench start (cold)
+        shell: bash
+        run: date +%s%N > /tmp/bench_start
+
+      - name: gitconfig with name+email (cold)
+        id: gc_step
+        uses: x-cmd-action/gitconfig@v1
+        with:
+          name: ci-bot
+          email: ci@example.com
+
+      - name: bench end (cold)
+        shell: bash
+        run: date +%s%N > /tmp/bench_end
+
+      - name: verify + report (bash)
+        shell: bash
+        run: |
+          test "$(git config --global user.name)" = "ci-bot" \
+              || { echo "FAIL: user.name not set"; exit 1; }
+          test "$(git config --global user.email)" = "ci@example.com" \
+              || { echo "FAIL: user.email not set"; exit 1; }
+
+          S=$(cat /tmp/bench_start)
+          E=$(cat /tmp/bench_end)
+          COLD_MS=$(( (E - S) / 1000000 ))
+          BASH_VERSION_STR=$(bash --version 2>&1 | head -1 || echo "bash unavailable")
+
+          {
+            echo "## windows-latest"
+            echo ""
+            echo "| metric | value |"
+            echo "|---|---|"
+            echo "| result | PASS |"
+            echo "| step wall-clock (cold) | ${COLD_MS} ms |"
+            echo "| bash version | ${BASH_VERSION_STR} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "RESULT=PASS BASH=$BASH_VERSION_STR STEP_MS=$COLD_MS" >> "$GITHUB_OUTPUT"
+
+  test-macos:
+    name: "macos-latest"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: show bash version (macos ships bash 3.2)
+        shell: bash
+        run: |
+          echo "bash version: $(bash --version | head -1)"
+          # Verify we're not relying on bash 4+ features
+          if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+            echo "WARNING: bash < 4 — verifying portability"
+          fi
+
+      - name: bench start (cold)
+        shell: bash
+        run: date +%s%N > /tmp/bench_start
+
+      - name: gitconfig with name+email (cold)
+        id: gc_step
+        uses: x-cmd-action/gitconfig@v1
+        with:
+          name: ci-bot
+          email: ci@example.com
+
+      - name: bench end (cold)
+        shell: bash
+        run: date +%s%N > /tmp/bench_end
+
+      - name: verify + report
+        shell: bash
+        run: |
+          test "$(git config --global user.name)" = "ci-bot" \
+              || { echo "FAIL: user.name not set"; exit 1; }
+          test "$(git config --global user.email)" = "ci@example.com" \
+              || { echo "FAIL: user.email not set"; exit 1; }
+
+          S=$(cat /tmp/bench_start)
+          E=$(cat /tmp/bench_end)
+          COLD_MS=$(( (E - S) / 1000000 ))
+          BASH_VERSION_STR=$(bash --version | head -1)
+
+          {
+            echo "## macos-latest"
+            echo ""
+            echo "| metric | value |"
+            echo "|---|---|"
+            echo "| result | PASS |"
+            echo "| step wall-clock (cold) | ${COLD_MS} ms |"
+            echo "| bash version | ${BASH_VERSION_STR} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "RESULT=PASS BASH=$BASH_VERSION_STR STEP_MS=$COLD_MS" >> "$GITHUB_OUTPUT"
+
+  # ─── Aggregate + auto-issue ───
+  report:
+    name: "report + auto-issue"
+    needs: [test-ubuntu, test-windows, test-macos]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: checkout (so gh CLI has a repo context)
+        uses: actions/checkout@v4
+      - name: decide pass/fail
+        id: decide
+        run: |
+          UB="${{ needs.test-ubuntu.result }}"
+          WI="${{ needs.test-windows.result }}"
+          MA="${{ needs.test-macos.result }}"
+          echo "ubuntu=$UB windows=$WI macos=$MA"
+          if [ "$UB" = "success" ] && [ "$WI" = "success" ] && [ "$MA" = "success" ]; then
+            echo "all_pass=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "all_pass=false" >> "$GITHUB_OUTPUT"
+            echo "failed_platforms=" >> "$GITHUB_OUTPUT"
+            [ "$UB" != "success" ] && echo "failed_platforms+=ubuntu," >> "$GITHUB_OUTPUT"
+            [ "$WI" != "success" ] && echo "failed_platforms+=windows," >> "$GITHUB_OUTPUT"
+            [ "$MA" != "success" ] && echo "failed_platforms+=macos," >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: close resolved multi-platform issues
+        if: steps.decide.outputs.all_pass == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          ISSUES=$(gh issue list --state open --label multi-platform \
+                     --search "Multi-platform test in:title" \
+                     --json number,title --jq '.[] | "\(.number)|\(.title)"')
+          if [ -n "$ISSUES" ]; then
+            echo "$ISSUES" | while IFS='|' read -r num title; do
+              echo "Closing #$num: $title"
+              gh issue close "$num" --comment "Multi-platform test passed on all platforms.
+
+          - ubuntu: success
+          - windows: success
+          - macos: success
+
+          Auto-closing."
+            done
+          else
+            echo "No open multi-platform issues to close"
+          fi
+
+      - name: open issue on failure
+        if: steps.decide.outputs.all_pass == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          BODY=$(cat <<EOF
+          Multi-platform CI run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed.
+
+          | platform | result |
+          |---|---|
+          | ubuntu-latest | ${{ needs.test-ubuntu.result }} |
+          | windows-latest | ${{ needs.test-windows.result }} |
+          | macos-latest | ${{ needs.test-macos.result }} |
+
+          Triggered by: ${{ github.event_name }} (${{ github.ref }}).
+          EOF
+          )
+          gh issue create --title "Multi-platform test failed" \
+                          --body "$BODY" \
+                          --label "multi-platform"
