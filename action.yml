@@ -42,4 +42,14 @@ runs:
         INPUT_EMAIL: ${{ inputs.email }}
         INPUT_HOOKS_PATH: ${{ inputs.hooks-path }}
         INPUT_CONFIG: ${{ inputs.config }}
-      run: bash ${{ github.action_path }}/lib/gitconfig.sh
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        # Convert action_path to POSIX on Windows (cygpath -u is available
+        # in Git Bash). Without this, the backslash-separated Windows
+        # path is mangled by bash's escape handling.
+        if command -v cygpath >/dev/null 2>&1; then
+          ACTION_PATH=$(cygpath -u "$GITHUB_ACTION_PATH")
+        else
+          ACTION_PATH="$GITHUB_ACTION_PATH"
+        fi
+        bash "$ACTION_PATH/lib/gitconfig.sh"
